@@ -41,3 +41,27 @@ example
 # generated native folders
 /ios
 /android
+
+# SQLite local databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Semua variasi environment, kecuali template
+.env.*
+!.env.example
+
+# File pendamping SQLite
+*.db-*
+*.sqlite-*
+*.sqlite3-*
+
+# Android signing
+*.keystore

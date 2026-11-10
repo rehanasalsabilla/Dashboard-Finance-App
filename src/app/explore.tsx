@@ -1,180 +1,231 @@
-import { Image } from 'expo-image';
-import { SymbolView } from 'expo-symbols';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ExternalLink } from '@/components/external-link';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { clearDemoData, seedDemoData } from '@/analytics/demo-seed';
 
-export default function TabTwoScreen() {
-  const safeAreaInsets = useSafeAreaInsets();
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
-  };
-  const theme = useTheme();
+export default function ExploreScreen() {
+  const db = useSQLiteContext();
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isError, setIsError] = useState(false);
 
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: Spacing.six,
-      paddingBottom: Spacing.four,
-    },
-  });
+  async function handleSeed() {
+    setLoading(true);
+    setMessage('');
+    setIsError(false);
+    try {
+      await seedDemoData(db);
+      setMessage(
+        'Dataset demo sintetis berhasil dimuat! Buka menu Analitik atau Transaksi untuk melihat data.',
+      );
+    } catch (err) {
+      console.error('Gagal memuat demo:', err);
+      setIsError(true);
+      setMessage(
+        err instanceof Error ? err.message : 'Gagal memuat dataset demo.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleClear() {
+    setLoading(true);
+    setMessage('');
+    setIsError(false);
+    try {
+      await clearDemoData(db);
+      setMessage(
+        'Data demo (BCA Utama, BCA Tabungan, GoPay beserta transaksi terkait) berhasil dibersihkan.',
+      );
+    } catch (err) {
+      console.error('Gagal menghapus demo:', err);
+      setIsError(true);
+      setMessage(
+        err instanceof Error ? err.message : 'Gagal menghapus data demo.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
-      contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="subtitle">Explore</ThemedText>
-          <ThemedText style={styles.centerText} themeColor="textSecondary">
-            This starter app includes example{'\n'}code to help you get started.
-          </ThemedText>
+    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Developer & Demo Mode</Text>
+        <Text style={styles.caption}>
+          Halaman ini digunakan untuk mengelola data demo sintetis portofolio.
+          Dataset sintetis mencakup transaksi 5 bulan (Oktober 2025 - Februari
+          2026), 3 akun (BCA Utama, BCA Tabungan, GoPay), anggaran, dan biaya
+          admin.
+        </Text>
 
-          <ExternalLink href="https://docs.expo.dev" asChild>
-            <Pressable style={({ pressed }) => pressed && styles.pressed}>
-              <ThemedView type="backgroundElement" style={styles.linkButton}>
-                <ThemedText type="link">Expo documentation</ThemedText>
-                <SymbolView
-                  tintColor={theme.text}
-                  name={{ ios: 'arrow.up.right.square', android: 'link', web: 'link' }}
-                  size={12}
-                />
-              </ThemedView>
-            </Pressable>
-          </ExternalLink>
-        </ThemedView>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Kelola Dataset Portofolio</Text>
+          <Text style={styles.cardDesc}>
+            Data demo dirancang untuk menguji fitur Analitik: perbandingan antar
+            bulan, kategori over budget, setoran bersih tabungan, dan insight
+            otomatis.
+          </Text>
 
-        <ThemedView style={styles.sectionsWrapper}>
-          <Collapsible title="File-based routing">
-            <ThemedText type="small">
-              This app has two screens: <ThemedText type="code">src/app/index.tsx</ThemedText> and{' '}
-              <ThemedText type="code">src/app/explore.tsx</ThemedText>
-            </ThemedText>
-            <ThemedText type="small">
-              The layout file in <ThemedText type="code">src/app/_layout.tsx</ThemedText> sets up
-              the tab navigator.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/router/introduction">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+          {message ? (
+            <View
+              style={[
+                styles.messageBox,
+                isError ? styles.errorBox : styles.successBox,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.messageText,
+                  isError ? styles.errorText : styles.successText,
+                ]}
+              >
+                {message}
+              </Text>
+            </View>
+          ) : null}
 
-          <Collapsible title="Android, iOS, and web support">
-            <ThemedView type="backgroundElement" style={styles.collapsibleContent}>
-              <ThemedText type="small">
-                You can open this project on Android, iOS, and the web. To open the web version,
-                press <ThemedText type="smallBold">w</ThemedText> in the terminal running this
-                project.
-              </ThemedText>
-              <Image
-                source={require('@/assets/images/tutorial-web.png')}
-                style={styles.imageTutorial}
-              />
-            </ThemedView>
-          </Collapsible>
+          {loading ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color="#0B7055" />
+              <Text style={styles.caption}>Sedang memproses database...</Text>
+            </View>
+          ) : (
+            <View style={styles.btnColumn}>
+              <Pressable
+                onPress={handleSeed}
+                style={({ pressed }) => [
+                  styles.primaryBtn,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.primaryBtnText}>
+                  📥 Muat Dataset Demo (Okt 2025 - Feb 2026)
+                </Text>
+              </Pressable>
 
-          <Collapsible title="Images">
-            <ThemedText type="small">
-              For static images, you can use the <ThemedText type="code">@2x</ThemedText> and{' '}
-              <ThemedText type="code">@3x</ThemedText> suffixes to provide files for different
-              screen densities.
-            </ThemedText>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.imageReact} />
-            <ExternalLink href="https://reactnative.dev/docs/images">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
+              <Pressable
+                onPress={handleClear}
+                style={({ pressed }) => [
+                  styles.dangerBtn,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.dangerBtnText}>
+                  🗑️ Hapus Dataset Demo
+                </Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
 
-          <Collapsible title="Light and dark mode components">
-            <ThemedText type="small">
-              This template has light and dark mode support. The{' '}
-              <ThemedText type="code">useColorScheme()</ThemedText> hook lets you inspect what the
-              user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-            </ThemedText>
-            <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-              <ThemedText type="linkPrimary">Learn more</ThemedText>
-            </ExternalLink>
-          </Collapsible>
-
-          <Collapsible title="Animations">
-            <ThemedText type="small">
-              This template includes an example of an animated component. The{' '}
-              <ThemedText type="code">src/components/ui/collapsible.tsx</ThemedText> component uses
-              the powerful <ThemedText type="code">react-native-reanimated</ThemedText> library to
-              animate opening this hint.
-            </ThemedText>
-          </Collapsible>
-        </ThemedView>
-        {Platform.OS === 'web' && <WebBadge />}
-      </ThemedView>
-    </ScrollView>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Navigasi Cepat</Text>
+          <Pressable
+            onPress={() => router.push('/laporan')}
+            style={styles.navLink}
+          >
+            <Text style={styles.navLinkText}>Buka Dashboard Analitik →</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/transaksi')}
+            style={styles.navLink}
+          >
+            <Text style={styles.navLinkText}>Buka Riwayat Transaksi →</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/anggaran')}
+            style={styles.navLink}
+          >
+            <Text style={styles.navLinkText}>Buka Anggaran →</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/dompet')}
+            style={styles.navLink}
+          >
+            <Text style={styles.navLinkText}>Buka Dompet & Akun →</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
+  screen: { flex: 1, backgroundColor: '#F3F6F3' },
+  content: { padding: 20, paddingBottom: 40, gap: 16 },
+  title: { fontSize: 24, fontWeight: '700', color: '#102A23' },
+  caption: { fontSize: 13, lineHeight: 20, color: '#738078' },
+  card: {
+    padding: 18,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    gap: 14,
   },
-  contentContainer: {
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#102A23' },
+  cardDesc: { fontSize: 12, lineHeight: 18, color: '#55645B' },
+  btnColumn: { gap: 10, marginTop: 4 },
+  primaryBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: '#0B7055',
+    alignItems: 'center',
+  },
+  primaryBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  dangerBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#D94B20',
+    alignItems: 'center',
+    backgroundColor: '#FFF7F5',
+  },
+  dangerBtnText: {
+    color: '#D94B20',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  pressed: { opacity: 0.8 },
+  loadingRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  titleContainer: {
-    gap: Spacing.three,
     alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.six,
+    gap: 10,
+    paddingVertical: 12,
   },
-  centerText: {
-    textAlign: 'center',
+  messageBox: {
+    padding: 12,
+    borderRadius: 12,
   },
-  pressed: {
-    opacity: 0.7,
+  successBox: { backgroundColor: '#E8F5E9' },
+  errorBox: { backgroundColor: '#FFEBEE' },
+  messageText: { fontSize: 12, lineHeight: 18 },
+  successText: { color: '#0B7055', fontWeight: '500' },
+  errorText: { color: '#D94B20', fontWeight: '500' },
+  navLink: {
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#EEF2EF',
   },
-  linkButton: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.five,
-    justifyContent: 'center',
-    gap: Spacing.one,
-    alignItems: 'center',
-  },
-  sectionsWrapper: {
-    gap: Spacing.five,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
-  },
-  collapsibleContent: {
-    alignItems: 'center',
-  },
-  imageTutorial: {
-    width: '100%',
-    aspectRatio: 296 / 171,
-    borderRadius: Spacing.three,
-    marginTop: Spacing.two,
-  },
-  imageReact: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
+  navLinkText: {
+    fontSize: 13,
+    color: '#0B7055',
+    fontWeight: '600',
   },
 });
